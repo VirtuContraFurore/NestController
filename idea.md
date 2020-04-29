@@ -8,8 +8,9 @@ struct widget{
     int y;
     int w;
     int h;
+    bool visible; //if false the widget will not be drawn and can't be touched
     struct widget_func* funcs;
-    void* data;
+    void* widget_data;
 };
 
 struct widget_func{
@@ -21,7 +22,7 @@ struct widget_func{
     /**
      * Handle touch on the widget at RELATIVE coordinates (x,y)
      */
-    bool (*on_touch)(struct widget *self, int x, int y);
+    bool (*on_touch)(struct widget *self, touch_event type, void * event_data);
 
     /**
      * Check if given absolute point (x,y) is within widget boundaries
@@ -29,6 +30,39 @@ struct widget_func{
     bool (*check_boundaries)(struct widget *self, int x, int y);
 };
 ```
+Touch Events
+
+```C
+//events.h
+
+enum touch_event {SINGLE_TOUCH, MULTI_TOUCH, DRAG_TOUCH};
+
+enum touch_type {TOUCH_DOWN, TOUCH_UP};
+
+/**
+ * All coordinates are relative to the widget's up-left corner (0,0)
+ */
+
+struct single_touch_data {
+	int x;
+	int y;
+	touch_type type;
+};
+
+struct multi_touch_data {
+	int count;
+	single_touch_data * touches;
+};
+
+struct drag_touch_data {
+	int start_x;
+	int start_y;
+	int end_x;
+	int end_y;
+};
+
+```
+
 For each widget type (e.g. roller):
 
 ```C
@@ -39,11 +73,12 @@ struct roller_widget_data{
     double min;
     double max;
     double value;
+    void (*value_changed_callback)(int new_value);
 };
 
 void roller_draw(struct widget *self);
-void roller_on_touch(struct widget *self, int x, int y);
-void roller_check_boundaries(struct widget *self, int x, int y);
+void roller_on_touch(struct widget *self, touc;
+void roller_check_boundaries(struct widget *self, touch_event type, void * event_data);
 
 struct widget_func roller_widget_func = {
     .draw = &roller_draw,
@@ -58,8 +93,16 @@ void roller_draw(struct widget *self){
     // TODO
 }
 
-void roller_on_touch(struct widget *self, int x, int y){
+void roller_on_touch(struct widget *self, touch_event type, void * event_data){
     // TODO
+    if(type == DRAG_TOUCH){
+    	if(self->value_changed_callback != 0 ) //check if the callback is provided for this widget instance
+		int newval = complex_algorithm(event_data);
+		if(newval != self->value){
+			*(self->value_changed_callback))(newval);
+			self->value = newval;
+		}
+    }
 }
 
 void roller_check_boundaries(struct widget *self, int x, int y){
@@ -74,11 +117,12 @@ Codice da generare con Acceleo:
 // index of the widget in the array (?)
 #define M_ROLLER 0
 
-struct roller_data mRoller_data = {
+struct roller_widget_data mRoller_data = {
     .vertical = false,
     .min = 0,
     .max = 90,
-    .value = 45
+    .value = 45,
+    .value_changed_callback = &user_defined_callback_for_mRoller
 };
 
 struct widget mRoller = {
@@ -86,10 +130,12 @@ struct widget mRoller = {
     .y = 10,
     .w = 100,
     .h = 100,
+    .visible = true,
     .funcs = &roller_widget_func,
     .data = (void*) &mRoller_data
 };
 
+//main.c
 struct widget widgets[] = {mRoller};
 ```
 
