@@ -96,12 +96,12 @@ void roller_draw(struct widget *self){
 void roller_on_touch(struct widget *self, touch_event type, void * event_data){
     // TODO
     if(type == DRAG_TOUCH){
-    	if(self->value_changed_callback != 0 ) //check if the callback is provided for this widget instance
-		int newval = complex_algorithm(event_data);
-		if(newval != self->value){
+	int newval = complex_algorithm(event_data);
+	if(newval != self->value){
+    		if(self->value_changed_callback != 0 ) //check if the callback is provided for this widget instance
 			*(self->value_changed_callback))(newval);
-			self->value = newval;
-		}
+		self->value = newval;
+	}
     }
 }
 
